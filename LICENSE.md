@@ -3,6 +3,7 @@
 - **Reports, text and figures** (everything under `reports/`): [Creative Commons Attribution 4.0 International
   (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/). You may reuse and adapt them with credit to
   "Mike Burns, AB1LD".
+- **Data** (everything under `data/`): CC BY 4.0, as above.
 - **Code written for this repository** (under `code/`): MIT licence, below, unless a file says otherwise.
 - **Code derived from other people's work** keeps their terms and is published only with their permission; such
   files say so in their header and in [ATTRIBUTION.md](ATTRIBUTION.md).

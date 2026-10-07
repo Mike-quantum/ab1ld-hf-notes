@@ -1,0 +1,13 @@
+input FUF_8552.6kHzUSB_IQcentre8554.4kHz_20261001T105500Z_12000Hz_iq.wav, centre offset 0.0 Hz, frame step 1
+frame period error -0.119 ppm; main-path Doppler median -1.1112 Hz
+frames analysed 5624; design rows sync 284, probe 84
+sync->probe: held-out prediction error, median over frames; paired change vs core
+  narrow       -3.57 dB   vs core  +5.26 dB, better than core in   0.9 % of frames
+  core         -9.44 dB   vs core  +0.00 dB, better than core in   0.0 % of frames
+  core+late   -11.60 dB   vs core  -1.00 dB, better than core in  91.5 % of frames
+  full        -12.35 dB   vs core  -1.99 dB, better than core in  97.8 % of frames
+probe->sync: held-out prediction error, median over frames; paired change vs core
+  narrow       -3.38 dB   vs core  +4.73 dB, better than core in   5.9 % of frames
+  core         -8.82 dB   vs core  +0.00 dB, better than core in   0.0 % of frames
+  core+late   -10.29 dB   vs core  -0.39 dB, better than core in  61.1 % of frames
+  full        -10.81 dB   vs core  -1.03 dB, better than core in  78.0 % of frames
