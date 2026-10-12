@@ -4,6 +4,8 @@ Known-answer tests for s4285_probe_witness.py: synthetic STANAG 4285 signals wit
 12000-S/s IQ WAVs, run through the script, and the recovered response compared with what was put in.
 
 Written by Claude (Anthropic AI) for Mike Burns, AB1LD, 2026-10-07.
+2026-10-12: tidied for readability (docstrings, one RRC function instead of two copies, one-liners written out);
+output verified identical; the previous version is in this repository's history.
 
 Synthetic signal: 256-symbol frames (sync + scrambled probes from s4285_known_symbols, random 8PSK data), 2400 Bd,
 root-raised-cosine pulse (roll-off 0.2, span 10 symbols), 5 samples per symbol at 12000 S/s. The transmitter's frame
@@ -34,15 +36,16 @@ from scipy.io import wavfile
 
 import s4285_known_symbols
 
-RATE = 12000
-BAUD = 2400
-SPS = RATE // BAUD
-SECONDS = 120
-CLOCK_PPM = 0.5
-SNR_DB = 20
+RATE = 12000            # sample rate of the synthetic IQ files (S/s)
+BAUD = 2400             # STANAG 4285 symbol rate
+SPS = RATE // BAUD      # 5 samples per symbol
+SECONDS = 120           # length of each synthetic file
+CLOCK_PPM = 0.5         # transmitter clock error put in (ppm fast)
+SNR_DB = 20             # signal-to-noise ratio put in
 
 
 def make_symbols(n_frames, rng):
+    """n_frames STANAG 4285 frames: the known sync and probe symbols, random 8PSK data elsewhere."""
     values, index, role = s4285_known_symbols.frame_template()
     frames = []
     for f in range(n_frames):
@@ -54,16 +57,10 @@ def make_symbols(n_frames, rng):
 
 
 def rrc(beta, span, sps):
-    t = (np.arange(span * sps + 1) - span * sps / 2) / sps
-    h = np.zeros(len(t))
-    for i, x in enumerate(t):
-        if abs(x) < 1e-9:
-            h[i] = 1 - beta + 4 * beta / np.pi
-        elif abs(abs(x) - 1 / (4 * beta)) < 1e-9:
-            h[i] = beta / np.sqrt(2) * ((1 + 2 / np.pi) * np.sin(np.pi / (4 * beta)) + (1 - 2 / np.pi) * np.cos(np.pi / (4 * beta)))
-        else:
-            h[i] = (np.sin(np.pi * x * (1 - beta)) + 4 * beta * x * np.cos(np.pi * x * (1 + beta))) / (np.pi * x * (1 - (4 * beta * x) ** 2))
-    return h / np.sqrt(np.sum(h ** 2))
+    """Root-raised-cosine filter taps: span symbols at sps samples per symbol, unit energy."""
+    tap_times = (np.arange(span * sps + 1) - span * sps / 2) / sps
+    taps = rrc_continuous(tap_times, beta)
+    return taps / np.sqrt(np.sum(taps ** 2))
 
 
 def transmitted_baseband(rng):
@@ -82,6 +79,7 @@ def transmitted_baseband(rng):
 
 
 def apply_path(x, delay_ms, doppler_hz, gain_db):
+    """One propagation path: x delayed (exact FFT delay), Doppler-shifted and scaled."""
     bins = np.fft.fftfreq(len(x), 1 / RATE)
     delayed = np.fft.ifft(np.fft.fft(x) * np.exp(-2j * np.pi * bins * delay_ms / 1000))
     t = np.arange(len(x)) / RATE
@@ -89,31 +87,48 @@ def apply_path(x, delay_ms, doppler_hz, gain_db):
 
 
 def write_case(name, paths, centre_hz, rng, base):
+    """test_<name>.wav: the sum of the paths (delay ms, Doppler Hz, gain dB), complex white noise at SNR_DB,
+    shifted to centre_hz in the IQ spectrum, peak at 0.25 of full scale, int16 I and Q."""
     received = np.zeros(len(base), complex)
     for delay_ms, doppler_hz, gain_db in paths:
         received += apply_path(base, delay_ms, doppler_hz, gain_db)
+
     power = np.mean(np.abs(received) ** 2)
-    received += np.sqrt(power / 10 ** (SNR_DB / 10) / 2) * (rng.standard_normal(len(base)) + 1j * rng.standard_normal(len(base)))
+    noise_rms_per_component = np.sqrt(power / 10 ** (SNR_DB / 10) / 2)
+    noise = rng.standard_normal(len(base)) + 1j * rng.standard_normal(len(base))
+    received += noise_rms_per_component * noise
+
     received *= np.exp(2j * np.pi * centre_hz * np.arange(len(base)) / RATE)
     received *= 0.25 / np.max(np.abs(received))
-    stereo = np.stack([np.round(received.real * 32767), np.round(received.imag * 32767)], axis=1).astype(np.int16)
+    in_phase = np.round(received.real * 32767)
+    quadrature = np.round(received.imag * 32767)
+    stereo = np.stack([in_phase, quadrature], axis=1).astype(np.int16)
     wavfile.write(f'test_{name}.wav', RATE, stereo)
 
 
 def rrc_continuous(t_symbols, beta=0.2):
-    """Root-raised-cosine impulse response at arbitrary times (in symbols)."""
+    """Root-raised-cosine impulse response at arbitrary times (in symbols), peak 1 - beta + 4 beta / pi.
+
+        p(t) = [sin(pi t (1 - beta)) + 4 beta t cos(pi t (1 + beta))] / [pi t (1 - (4 beta t)^2)]
+    with the limits at t = 0 and t = +/- 1 / (4 beta), where the formula is 0/0.
+    """
     out = np.zeros(len(t_symbols))
     for i, x in enumerate(t_symbols):
         if abs(x) < 1e-9:
             out[i] = 1 - beta + 4 * beta / np.pi
         elif abs(abs(x) - 1 / (4 * beta)) < 1e-9:
-            out[i] = beta / np.sqrt(2) * ((1 + 2 / np.pi) * np.sin(np.pi / (4 * beta)) + (1 - 2 / np.pi) * np.cos(np.pi / (4 * beta)))
+            sine_part = (1 + 2 / np.pi) * np.sin(np.pi / (4 * beta))
+            cosine_part = (1 - 2 / np.pi) * np.cos(np.pi / (4 * beta))
+            out[i] = beta / np.sqrt(2) * (sine_part + cosine_part)
         else:
-            out[i] = (np.sin(np.pi * x * (1 - beta)) + 4 * beta * x * np.cos(np.pi * x * (1 + beta))) / (np.pi * x * (1 - (4 * beta * x) ** 2))
+            numerator = np.sin(np.pi * x * (1 - beta)) + 4 * beta * x * np.cos(np.pi * x * (1 + beta))
+            denominator = np.pi * x * (1 - (4 * beta * x) ** 2)
+            out[i] = numerator / denominator
     return out
 
 
 def expected_power(delay_ms, paths, t0_ms):
+    """Power the put-in paths should give at each delay: sum of gain x RRC pulse^2 (aligned by t0_ms)."""
     total = np.zeros(len(delay_ms))
     for path_delay_ms, doppler_hz, gain_db in paths:
         t_symbols = (delay_ms - path_delay_ms - t0_ms) * BAUD / 1000
@@ -122,15 +137,22 @@ def expected_power(delay_ms, paths, t0_ms):
 
 
 def run(name, centre_hz):
-    output = subprocess.run([sys.executable, 's4285_probe_witness.py', f'test_{name}.wav', str(centre_hz), f'test_{name}'],
-                            capture_output=True, text=True, check=True).stdout
+    """Run s4285_probe_witness.py on test_<name>.wav; return its .npz results and the frame-period error in ppm."""
+    command = [sys.executable, 's4285_probe_witness.py', f'test_{name}.wav', str(centre_hz), f'test_{name}']
+    output = subprocess.run(command, capture_output=True, text=True, check=True).stdout
     result = np.load(f'test_{name}.npz')
-    clock_line = [line for line in output.splitlines() if line.startswith('frame clock')][0]
+
+    # The printed line 'frame clock: ... (+0.123 ppm vs nominal ...)' carries the measured period error.
+    for line in output.splitlines():
+        if line.startswith('frame clock'):
+            clock_line = line
+            break
     ppm = float(clock_line.split('(')[1].split(' ppm')[0])
     return result, ppm
 
 
 def median_change_db(result, direction, model):
+    """Median change (dB) of the held-out error of `model` against 'core', and the fraction of frames improved."""
     core = result[f'error {direction} core']
     other = result[f'error {direction} {model}']
     change = 10 * np.log10(other / core)
@@ -173,7 +195,10 @@ def main():
         print(f'case {name}: frame period {ppm:+.3f} ppm (expect {expected_ppm:+.3f}), main-path Doppler {doppler:+.4f} Hz (put in -1.1000)')
         for witness in ('h_from_sync', 'h_from_probe'):
             measured = np.mean(np.abs(result[witness]) ** 2, axis=0)
-            depth_db = 25 if witness == 'h_from_sync' else 20
+            if witness == 'h_from_sync':
+                depth_db = 25            # the sync witness has more rows, so a lower floor
+            else:
+                depth_db = 20
             significant = shape > shape.max() * 10 ** (-depth_db / 10)
             # each file is normalised to its own peak level, so the overall scale is fitted per case and witness
             scale = np.sum(measured[significant] * shape[significant]) / np.sum(shape[significant] ** 2)
@@ -209,7 +234,10 @@ def main():
         measured = np.mean(np.abs(result_c[witness]) ** 2, axis=0)
         floor_db = 10 * np.log10(np.median(measured[empty]) / measured.max())
         print(f'estimation-noise floor in case C ({SNR_DB} dB SNR), {witness[7:]}: {floor_db:.1f} dB below the peak')
-    print('ALL PASSED' if not failures else 'FAILED: ' + ', '.join(failures))
+    if failures:
+        print('FAILED: ' + ', '.join(failures))
+    else:
+        print('ALL PASSED')
 
 
 if __name__ == '__main__':

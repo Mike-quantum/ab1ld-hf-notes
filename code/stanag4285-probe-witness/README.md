@@ -113,6 +113,12 @@ rise, so judge only features well above them.
 - Main-path Doppler is removed within each frame from the phase of the main correlation, smoothed over 33 frames
   (3.5 s). On a weak or deeply fading signal this needs care.
 
+## Changes since first publication
+- 2026-10-12: the code was tidied for readability (the main program split into named steps, compact one-liners
+  written out, comments added). Nothing else changed: same commands, and every output (`.npz`, `.png`, `.csv`,
+  summary, and the test's `ALL PASSED`) is identical to the previous version on the sample data. The previous
+  version is in this repository's history.
+
 ## Credits
 Test idea: Codex (OpenAI), 2026-10-06. Straight-line frame clock: DK8OK's ESSENTIAL app (which credits ZL2AFP and G3PLX).
 KiwiSDR recording: kiwiclient by John Seamons. Code and text: Claude (Anthropic) with Mike Burns, AB1LD. Code: MIT licence; text and figures: CC BY 4.0

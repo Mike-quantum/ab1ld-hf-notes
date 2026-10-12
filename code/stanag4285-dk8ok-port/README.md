@@ -64,3 +64,6 @@ The acquisition searches tuning in 2-Hz steps, so `residual_hz` can differ by on
   numpy's fit lost precision: up to 0.4 ms of false departures and up to 1 ppm error in the measured sample rate. The
   clock figure for the port in the report (−0.038 ppm over 30 minutes) went through that fit; re-fitting that interval's
   stamps the correct way moves the measured sample rate by 0.08 ppm, so that figure is off by about that much; the Doppler and delay results do not depend on it.
+- 2026-10-12: rewritten for readability (one step per line, descriptive names, comments on each step). Nothing
+  else changed: same commands, same arguments, and the outputs are bit-identical to the previous version on the
+  sample data (plain and Kiwi), checked file by file. The previous version is in this repository's history.

@@ -3,6 +3,7 @@
 STANAG 4285 known symbols of one 256-symbol frame: the 80 sync symbols and the 48 probe symbols.
 
 Written by Claude (Anthropic AI) for Mike Burns, AB1LD, 2026-10-07, for Nils Schiffhauer, DK8OK.
+2026-10-12: two comments added for readability; code unchanged in effect (output verified identical).
 
 Where the values come from
   * Sync (symbols 0-79): the 31-bit PN sequence, repeated (31 + 31 + 18 symbols), BPSK (+1/-1). We derived it in
@@ -32,7 +33,7 @@ PROBE_LENGTH = 16
 def pn31_sync():
     """80 sync symbols: the 31-bit PN sequence (an m-sequence of x^5 + x^2 + 1) repeated, bit 0 -> +1, bit 1 -> -1."""
     pn31_bits = '0101100111110001101110101000010'
-    bits = np.array([int(c) for c in pn31_bits])
+    bits = np.array([int(character) for character in pn31_bits])
     repeated = np.concatenate([bits, bits, bits])[:SYNC_LENGTH]
     return 1 - 2 * repeated
 
@@ -45,6 +46,7 @@ def scrambler_indices():
         value = register[0] + 2 * register[1] + 4 * register[2]
         indices.append(value)
         for shift in range(3):
+            # x^9 + x^4 + 1: the new bit is (output stage) XOR (stage 4 from the output end); shift towards the output
             feedback = register[0] ^ register[4]
             register = register[1:] + [feedback]
     return np.array(indices)
@@ -63,7 +65,7 @@ def frame_template():
     for start in PROBE_STARTS_IN_FRAME:
         for offset in range(PROBE_LENGTH):
             symbol = start + offset
-            k = scrambler[symbol - SYNC_LENGTH]
+            k = scrambler[symbol - SYNC_LENGTH]          # the data part starts after the 80 sync symbols
             values[symbol] = np.exp(1j * np.pi * k / 4)
             index[symbol] = k
             role[symbol] = 'probe'

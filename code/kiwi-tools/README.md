@@ -42,5 +42,11 @@ record layout, stamps on a straight line to within 1 µs. Three things to watch:
   the Kiwi has no GPS clock at all. A Kiwi without a recent solution keeps stamping blocks from its own clock: the
   stamps stay smooth, but they are not GPS time. `kiwiwav.py` does not look at this byte; the DK8OK port does, and
   warns.
-- **Style:** the reader is older and more compact than the other code here; it is published as used in the
-  measurements.
+- **Damaged stamps in `iter_blocks`:** each chunk's straight line is an ordinary least-squares fit, so a single
+  wildly wrong stamp in a chunk (seconds or more off) can pull the line far enough that the whole chunk is flagged
+  bad. `read()` and the seek index are not affected by this (found 2026-10-12 with a deliberately damaged copy).
+
+## Changes since first publication
+- 2026-10-12: `kiwiwav.py` rewritten for readability (it was compact and older than the other code here). Same
+  names and behaviour; results verified bit-identical to the previous version on the sample recording and on a
+  deliberately damaged copy. The previous version is in this repository's history.
