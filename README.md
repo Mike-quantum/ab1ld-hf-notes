@@ -45,6 +45,7 @@ Each folder's README explains its program, its inputs and how it was checked. **
 |---|---|---|
 | 2026-10 | [kiwi-tools](code/kiwi-tools/) | Reading GPS-stamped KiwiSDR (kiwirecorder) IQ files with the GPS time of every sample; cutting and converting them. |
 | 2026-10 | [stanag4285-dk8ok-port](code/stanag4285-dk8ok-port/) | DK8OK's STANAG 4285 sounder (ESSENTIAL V1.1 measurement core) in Python, published with his permission: frame clock, complex delay response per frame, Doppler image. Reads plain IQ WAV files and GPS-stamped KiwiSDR recordings, including from public Kiwis. |
+| 2026-10 | [stanag4285-livepn](code/stanag4285-livepn/) | DK8OK's STANAG 4285 LIVE PN V1.4 (PN sync and equalizer monitor) in Python, published with his permission: per-frame PN bit error rate, carrier offset, channel phase and EVM, with his prior-frame equalizer. Reads recordings or a live KiwiSDR (no sound-card set-up). Includes a script to compare its results with his MATLAB program. |
 | 2026-10 | [stanag4285-probe-witness](code/stanag4285-probe-witness/) | Tests whether features in a STANAG 4285 delay profile are real: least-squares response from the sync and, independently, from the probe symbols, scored by held-out prediction. Standalone Python, with the exact sync/probe symbol template and known-answer tests. |
 
 ## Data
